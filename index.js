@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 
 const port = process.env.PORT || 5000
@@ -28,11 +28,51 @@ async function run() {
     await client.connect();
 
        const coffeeCollections = client.db('coffeedb').collection('coffee');
+
+       app.get('/coffee', async(req, res)=>{
+        const cursor = coffeeCollections.find();
+        const result = await cursor.toArray();
+        res.send(result);
+       });
+
+       app.get('/coffee/:id', async(req, res)=>{
+          const id = req.params.id;
+          const quary = {_id : new ObjectId(id)};
+          const result = await coffeeCollections.findOne(quary);
+          res.send(result)
+       });
+
+       app.put('/coffee/:id', async(req, res)=>{
+          const id = req.params.id;
+          const filter = {_id : new ObjectId(id)}
+          const options = { upsert: true };
+          const updatedCoffee = req.body;
+          const coffee = {
+            $set:{
+              name:updatedCoffee.name,
+               quantity:updatedCoffee.quantity,
+               test:updatedCoffee.test,
+               category:updatedCoffee.category,
+               details:updatedCoffee.details,
+               photo:updatedCoffee.photo,
+               supplier:updatedCoffee.supplier
+          }}
+
+          const result = await coffeeCollections.updateOne(filter, coffee, options)
+          res.send(result)
+       })
     
       app.post('/coffee', async(req, res)=>{
           const newCoffee = req.body;
           const result = await coffeeCollections.insertOne(newCoffee);
           res.send(result)
+      });
+
+      app.delete('/coffee/:id', async(req, res)=>{
+        const id = req.params.id;
+        const quary = {_id : new ObjectId(id)};
+        const result = await coffeeCollections.deleteOne(quary);
+        res.send(result);
       })
 
     // Send a ping to confirm a successful connection
